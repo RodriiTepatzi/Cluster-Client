@@ -157,7 +157,8 @@
                              Background="Transparent"
                              BorderBrush="White"
                              BorderThickness="0,0,0,2"
-                             VerticalAlignment="Center">
+                             VerticalAlignment="Center"
+                             Text="{Binding IpAddress, UpdateSourceTrigger=PropertyChanged}">
                         <TextBox.Template>
                             <ControlTemplate TargetType="TextBox">
                                 <Border Background="Transparent"
@@ -201,7 +202,7 @@
                              BorderBrush="White"
                              BorderThickness="0,0,0,2"
                              VerticalAlignment="Center"
-                             Text="9696">
+                             Text="{Binding Port, UpdateSourceTrigger=PropertyChanged}">
                         <TextBox.Template>
                             <ControlTemplate TargetType="TextBox">
                                 <Border Background="Transparent"
@@ -223,11 +224,11 @@
                         FontSize="16"
                         Cursor="Hand"
                         VerticalAlignment="Center"
-                        Click="btnClose_Click"
                         Width="150"
                         Height="25"
                         FontFamily="{StaticResource Montserrat}"
-                        Margin="0,25,0,0">
+                        Margin="0,25,0,0"
+                        Command="{Binding ExecuteConnectToServerCommand}">
                     <Button.Style>
                         <Style TargetType="Button">
                             <Setter Property="Background" Value="#318591"/>

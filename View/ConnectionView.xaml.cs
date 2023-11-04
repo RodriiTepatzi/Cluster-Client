@@ -11,6 +11,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using Cluster_Client.ViewModel;
 
 namespace Cluster_Client.View
 {
@@ -19,6 +20,7 @@ namespace Cluster_Client.View
     {
         public ConnectionView()
         {
+            DataContext = new ConnectionViewModel();
             InitializeComponent();
         }
 

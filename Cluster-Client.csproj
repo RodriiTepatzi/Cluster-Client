@@ -13,12 +13,18 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Page Remove="Resources\BusyServerMessage.xaml" />
     <Page Remove="Resources\Font.xaml" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Model\" />
-    <Folder Include="ViewModel\" />
+    <Content Include="Resources\BusyServerMessage.xaml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 
   <ItemGroup>
@@ -28,6 +34,10 @@
     <Resource Include="Resources\Montserrat-VariableFont_wght.ttf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Resource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Core\Events\" />
   </ItemGroup>
 
 </Project>
