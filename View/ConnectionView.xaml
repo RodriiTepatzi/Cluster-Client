@@ -89,8 +89,8 @@
                         Cursor="Hand"
                         Grid.Column="2"
                         VerticalAlignment="Center"
-                        Click="btnClose_Click" 
-                        FontFamily="{StaticResource Montserrat}">
+                        FontFamily="{StaticResource Montserrat}"
+                        Command="{Binding ExecuteCloseWindowCommand}">
                     <Button.Style>
                         <Style TargetType="Button">
                             <Setter Property="Background" Value="#318591"/>

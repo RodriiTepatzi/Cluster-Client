@@ -19,6 +19,7 @@ namespace Cluster_Client.ViewModel
         private CoreHandler _coreHandler;
 
         private ICommand _executeConnectToServerCommand;
+        private ICommand _executeCloseWindowCommand;
 
         private string _ipAddress;
         private int _port;
@@ -28,6 +29,11 @@ namespace Cluster_Client.ViewModel
         public ICommand ExecuteConnectToServerCommand
         {
             get { return _executeConnectToServerCommand; }
+        }
+
+        public ICommand ExecuteCloseWindowCommand
+        {
+            get { return _executeCloseWindowCommand; }
         }
 
         public string IpAddress
@@ -73,6 +79,7 @@ namespace Cluster_Client.ViewModel
         {
             _coreHandler = CoreHandler.Instance;
             _executeConnectToServerCommand = new CommandViewModel(ConnectAction);
+            _executeCloseWindowCommand = new CommandViewModel(CloseWindowAction);
             _ipAddress = "";
             _port = 6969;
 
@@ -148,6 +155,15 @@ namespace Cluster_Client.ViewModel
             {
                 CoreHandler.Instance.ConnectToServerAsync(IpAddress, Port);
             }
+        }
+
+        private void CloseWindowAction(object sender)
+        {
+            if (IsConnected)
+            {
+                CoreHandler.Instance.StopClientAsync();
+            }
+            Application.Current.Shutdown();
         }
     }
 }

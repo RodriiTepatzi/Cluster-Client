@@ -84,6 +84,8 @@ namespace Cluster_Client.Core
 
                 if (_client.Connected)
                 {
+                    IsConnected = true;
+                    HandleConnectionStatus(IsConnected);
                     _serverConnection.Stream = _client.GetStream();
                     _serverConnection.StreamWriter = new StreamWriter(_serverConnection.Stream);
                     _serverConnection.StreamReader = new StreamReader(_serverConnection.Stream);
@@ -153,6 +155,12 @@ namespace Cluster_Client.Core
             listener.Stop();
 
             return port;
+        }
+
+        public void StopClientAsync()
+        {
+            IsConnected = false;
+            _client.Close();
         }
     }
 
