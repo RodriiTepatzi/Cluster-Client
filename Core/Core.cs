@@ -80,7 +80,7 @@ namespace Cluster_Client.Core
 
             try
             {
-                await _client.ConnectAsync(IPAddress.Parse(_localConnection.IpAddress), _serverConnection.Port);
+                await _client.ConnectAsync(IPAddress.Parse(_serverConnection.IpAddress), _serverConnection.Port);
 
                 if (_client.Connected)
                 {
