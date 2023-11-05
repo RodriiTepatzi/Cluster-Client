@@ -1,19 +1,20 @@
-﻿using System.IO;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Net;
+using System.Net.Sockets;
+using System.Security.RightsManagement;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Windows;
+using Newtonsoft.Json;
 using Cluster_Client.Core.Events;
 using Cluster_Client.Model;
 using Cluster_Client.ViewModel;
 using Cluster_Client.View;
-using System.Net;
-using System.Threading;
-using System.Windows;
-using Newtonsoft.Json;
 using Microsoft.Win32;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Sockets;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Cluster_Client.Core
 {
@@ -62,9 +63,24 @@ namespace Cluster_Client.Core
             _serverConnection.IpAddress = ipAddress;
             _serverConnection.Port = port;
 
+            List<string> ips = new List<string>();
+
+            var entry = Dns.GetHostEntry(Dns.GetHostName());
+
+            foreach (IPAddress ip in entry.AddressList)
+                if (ip.AddressFamily == AddressFamily.InterNetwork)
+                    ips.Add(ip.ToString());
+
+
+            var localport = FreeTcpPort(ips[0]);
+            var localEndPoint = new IPEndPoint(IPAddress.Parse(ips[0]), localport);
+
+            _localConnection.Port = localport;
+            _localConnection.IpAddress = localEndPoint.Address.ToString();
+
             try
             {
-                await _client.ConnectAsync(IPAddress.Parse(_serverConnection.IpAddress), _serverConnection.Port);
+                await _client.ConnectAsync(IPAddress.Parse(_localConnection.IpAddress), _serverConnection.Port);
 
                 if (_client.Connected)
                 {
@@ -81,7 +97,7 @@ namespace Cluster_Client.Core
                     {
                         Type = MessageType.User,
                         Content = JsonConvert.SerializeObject(connection),
-                        Connection = connection
+                        Connection = connection,
                     };
 
                     var json = JsonConvert.SerializeObject(message);
@@ -117,12 +133,26 @@ namespace Cluster_Client.Core
                             HandleServerDisponibility(ServerDisponibility);
                         }));
                     }
+                    if (model!.Type == MessageType.Turn)
+                    {
+                        var x = 1;
+                    }
                 }
                 catch
                 {
 
                 }
             }
+        }
+
+        public int FreeTcpPort(string ip)
+        {
+            var listener = new TcpListener(IPAddress.Loopback, 0);
+            listener.Start();
+            int port = ((IPEndPoint)listener.LocalEndpoint).Port;
+            listener.Stop();
+
+            return port;
         }
     }
 
