@@ -12,6 +12,7 @@ namespace Cluster_Client.Model
         Processor,
         Data,
         ProcessedData,
-        Status
+        Status,
+        Turn,
     }
 }
