@@ -25,32 +25,32 @@ namespace Cluster_Client.Core
         private Connection _localConnection = new();
         private Connection _serverConnection = new();
         private TcpClient _client = new TcpClient();
-        private TcpClient _localClient = new TcpClient();
-        private TcpClient _currentRemoteClient = new TcpClient();
 
         public Connection LocalConnection { get { return _localConnection; } }
         public bool IsConnected { get; private set; }
         public string ServerDisponibility { get; private set; }
-
-        private bool _clientClosing = false;
+        public int ClientsBefore { get; private set; }
 
         //Eventos para actualizar la interfaz
         public event EventHandler<ConnectedStatusEventArgs>? ConnectedStatusEvent;
         public event EventHandler<MessageReceivedEventArgs>? MessageReceivedEvent;
         public event EventHandler<ServerDisponibilityEventArgs>? ServerDisponibilityEvent;
+        public event EventHandler<ClientsBeforeEventArgs>? ClientsBeforeEvent;
 
         private void OnStatusConnectedChanged(ConnectedStatusEventArgs e) => ConnectedStatusEvent?.Invoke(this, e);
         private void OnMessageReceived(MessageReceivedEventArgs e) => MessageReceivedEvent?.Invoke(this, e);
         private void OnServerDisponibility(ServerDisponibilityEventArgs e) => ServerDisponibilityEvent?.Invoke(this, e);
+        private void OnClientsBefore(ClientsBeforeEventArgs e) => ClientsBeforeEvent?.Invoke(this, e);
 
         private void HandleConnectionStatus(bool value) => OnStatusConnectedChanged(new ConnectedStatusEventArgs(value));
         private void HandleMessageReceived(string value) => OnMessageReceived(new MessageReceivedEventArgs(value));
         private void HandleServerDisponibility(string value) => OnServerDisponibility(new ServerDisponibilityEventArgs(value));
-
+        private void HandleClientsBefore(int value) => OnClientsBefore(new ClientsBeforeEventArgs(value));
         private CoreHandler()
         {
             IsConnected = false;
             ServerDisponibility = "";
+            ClientsBefore = 0;
         }
 
         public static CoreHandler Instance
