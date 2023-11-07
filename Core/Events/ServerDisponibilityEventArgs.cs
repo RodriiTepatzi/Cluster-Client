@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Cluster_Client.Model;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,9 +9,9 @@ namespace Cluster_Client.Core.Events
 {
     public class ServerDisponibilityEventArgs : EventArgs
     {
-        public string serverDisponibility { get; set; }
+        public Status serverDisponibility { get; set; }
 
-        public ServerDisponibilityEventArgs(string value)
+        public ServerDisponibilityEventArgs(Status value)
         {
             serverDisponibility = value;
         }
