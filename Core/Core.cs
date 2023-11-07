@@ -28,7 +28,7 @@ namespace Cluster_Client.Core
 
         public Connection LocalConnection { get { return _localConnection; } }
         public bool IsConnected { get; private set; }
-        public string ServerDisponibility { get; private set; }
+        public Status ServerDisponibility { get; private set; }
         public int ClientsBefore { get; private set; }
 
         //Eventos para actualizar la interfaz
@@ -44,12 +44,12 @@ namespace Cluster_Client.Core
 
         private void HandleConnectionStatus(bool value) => OnStatusConnectedChanged(new ConnectedStatusEventArgs(value));
         private void HandleMessageReceived(string value) => OnMessageReceived(new MessageReceivedEventArgs(value));
-        private void HandleServerDisponibility(string value) => OnServerDisponibility(new ServerDisponibilityEventArgs(value));
+        private void HandleServerDisponibility(Status value) => OnServerDisponibility(new ServerDisponibilityEventArgs(value));
         private void HandleClientsBefore(int value) => OnClientsBefore(new ClientsBeforeEventArgs(value));
         private CoreHandler()
         {
             IsConnected = false;
-            ServerDisponibility = "";
+            ServerDisponibility = Status.Waiting;
             ClientsBefore = 0;
         }
 
@@ -128,8 +128,10 @@ namespace Cluster_Client.Core
 
                     if (model!.Type == MessageType.Status)
                     {
-                        ServerDisponibility = model!.Content! as string;
-
+                        var json = model.Content as string;
+                        var content = JsonConvert.DeserializeObject<Status>(json!);
+                        Status ServerDisponibility = content;
+                        
                         Application.Current.Dispatcher.Invoke(new Action(() =>
                         {
                             HandleServerDisponibility(ServerDisponibility);
