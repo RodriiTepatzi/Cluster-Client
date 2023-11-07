@@ -128,8 +128,9 @@ namespace Cluster_Client.Core
 
                     if (model!.Type == MessageType.Status)
                     {
-                        var content = model.Content!;
-                        Status? ServerDisponibility = content! as Status;
+                        var json = model.Content as string;
+                        var content = JsonConvert.DeserializeObject<Status>(json!);
+                        Status ServerDisponibility = content;
                         
                         Application.Current.Dispatcher.Invoke(new Action(() =>
                         {
