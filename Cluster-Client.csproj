@@ -13,12 +13,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Page Remove="Resources\ConnectingMessage.xaml" />
     <Page Remove="Resources\Font.xaml" />
+    <Page Remove="Resources\Messages.xaml" />
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="Resources\ConnectingMessage.xaml">
+    <Content Include="Resources\Messages.xaml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

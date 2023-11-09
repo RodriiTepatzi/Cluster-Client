@@ -28,29 +28,37 @@ namespace Cluster_Client.Core
 
         public Connection LocalConnection { get { return _localConnection; } }
         public bool IsConnected { get; private set; }
+        public bool IsVideoLoaded { get; private set; }
         public Status ServerDisponibility { get; private set; }
         public int ClientsBefore { get; private set; }
+        public byte[] LocalVideo { get; private set; }
 
         //Eventos para actualizar la interfaz
         public event EventHandler<ConnectedStatusEventArgs>? ConnectedStatusEvent;
-        public event EventHandler<MessageReceivedEventArgs>? MessageReceivedEvent;
+        public event EventHandler<VideoLoadedEventArgs>? VideoLoadedEvent;
         public event EventHandler<ServerDisponibilityEventArgs>? ServerDisponibilityEvent;
         public event EventHandler<ClientsBeforeEventArgs>? ClientsBeforeEvent;
+        public event EventHandler<LocalVideoEventArgs>? LocalVideoEvent;
 
         private void OnStatusConnectedChanged(ConnectedStatusEventArgs e) => ConnectedStatusEvent?.Invoke(this, e);
-        private void OnMessageReceived(MessageReceivedEventArgs e) => MessageReceivedEvent?.Invoke(this, e);
+        private void OnVideoLoaded(VideoLoadedEventArgs e) => VideoLoadedEvent?.Invoke(this, e);
         private void OnServerDisponibility(ServerDisponibilityEventArgs e) => ServerDisponibilityEvent?.Invoke(this, e);
         private void OnClientsBefore(ClientsBeforeEventArgs e) => ClientsBeforeEvent?.Invoke(this, e);
+        private void OnLacalVideo(LocalVideoEventArgs e) => LocalVideoEvent?.Invoke(this, e);
 
         private void HandleConnectionStatus(bool value) => OnStatusConnectedChanged(new ConnectedStatusEventArgs(value));
-        private void HandleMessageReceived(string value) => OnMessageReceived(new MessageReceivedEventArgs(value));
+        private void HandleVideoLoaded(bool value) => OnVideoLoaded(new VideoLoadedEventArgs(value));
         private void HandleServerDisponibility(Status value) => OnServerDisponibility(new ServerDisponibilityEventArgs(value));
         private void HandleClientsBefore(int value) => OnClientsBefore(new ClientsBeforeEventArgs(value));
+        private void HandleLocalVideo(byte[] value) => OnLacalVideo(new LocalVideoEventArgs(value));
+
         private CoreHandler()
         {
             IsConnected = false;
             ServerDisponibility = Status.Waiting;
             ClientsBefore = 0;
+            IsVideoLoaded = false;
+            byte[] LocalVideo = new byte[0];
         }
 
         public static CoreHandler Instance
@@ -84,8 +92,6 @@ namespace Cluster_Client.Core
 
                 if (_client.Connected)
                 {
-                    IsConnected = true;
-                    HandleConnectionStatus(IsConnected);
                     _serverConnection.Stream = _client.GetStream();
                     _serverConnection.StreamWriter = new StreamWriter(_serverConnection.Stream);
                     _serverConnection.StreamReader = new StreamReader(_serverConnection.Stream);
@@ -107,6 +113,9 @@ namespace Cluster_Client.Core
                     _serverConnection.StreamWriter.WriteLine(json);
                     _serverConnection.StreamWriter.Flush();
 
+                    IsConnected = true;
+                    HandleConnectionStatus(IsConnected);
+
                     Thread thread = new Thread(ListenToServerAsync);
                     thread.Start();
                 }
@@ -121,17 +130,20 @@ namespace Cluster_Client.Core
         {
             while (_client.Connected)
             {
+
                 try
                 {
+
                     var dataFromClient = _serverConnection.StreamReader!.ReadLine();
                     var model = JsonConvert.DeserializeObject<Message>(dataFromClient!);
 
                     if (model!.Type == MessageType.Status)
                     {
+
                         var json = model.Content as string;
                         var content = JsonConvert.DeserializeObject<Status>(json!);
                         Status ServerDisponibility = content;
-                        
+
                         Application.Current.Dispatcher.Invoke(new Action(() =>
                         {
                             HandleServerDisponibility(ServerDisponibility);
@@ -139,7 +151,12 @@ namespace Cluster_Client.Core
                     }
                     if (model!.Type == MessageType.Turn)
                     {
-                        var x = 1;
+                        ClientsBefore = int.Parse(model!.Content! as string);
+
+                        Application.Current.Dispatcher.Invoke(new Action(() =>
+                        {
+                            HandleClientsBefore(ClientsBefore);
+                        }));
                     }
                 }
                 catch
@@ -164,6 +181,33 @@ namespace Cluster_Client.Core
             IsConnected = false;
             _client.Close();
         }
-    }
 
+        public void LoadVideo()
+        {
+            OpenFileDialog openFileDialog = new OpenFileDialog();
+            openFileDialog.Filter = "Archivos de video|*.avi;*.wmv;*.mp4;*.mkv;*.mpeg;*.flv;*.3gp;*.mov|Todos los archivos (*.*)|*.*";
+            if (openFileDialog.ShowDialog() == true)
+            {
+                string path = openFileDialog.FileName;
+
+                if (!string.IsNullOrEmpty(path))
+                {
+                    byte[] video = File.ReadAllBytes(path);
+                    string videoName = System.IO.Path.GetFileNameWithoutExtension(openFileDialog.FileName);
+                    string videoExtension = System.IO.Path.GetExtension(openFileDialog.FileName).TrimStart('.').ToLower();
+
+                    if (video.Length > 0)
+                    {
+                        IsVideoLoaded = true;
+                        Application.Current.Dispatcher.Invoke(new Action(() =>
+                        {
+                            HandleVideoLoaded(IsVideoLoaded);
+                            HandleLocalVideo(video);
+                        }));
+                    }
+
+                }
+            }
+        }
+    }
 }
