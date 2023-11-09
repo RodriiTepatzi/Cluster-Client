@@ -113,9 +113,12 @@
 
             </Grid>
 
-            <Grid Grid.Row="1"
+            <Grid x:Name="AllContent"
+                  Grid.Row="1"
                   Width="750"
-                  Height="575">
+                  Height="575"
+                  VerticalAlignment="Center"
+                  HorizontalAlignment="Center">
                 <Grid.RowDefinitions>
                     <RowDefinition/>
                     <RowDefinition/>
@@ -153,7 +156,7 @@
                                     FontSize="16"
                                     Cursor="Hand"
                                     VerticalAlignment="Center"
-                                    Click="btnClose_Click"
+                                    Command="{Binding ExecuteLoadVideoCommand}"
                                     Width="250"
                                     Height="35"
                                     FontFamily="{StaticResource Montserrat}"
@@ -188,7 +191,7 @@
                                     FontSize="16"
                                     Cursor="Hand"
                                     VerticalAlignment="Center"
-                                    Click="btnClose_Click"
+                                    Visibility="Hidden"
                                     Width="250"
                                     Height="35"
                                     FontFamily="{StaticResource Montserrat}"
@@ -223,7 +226,7 @@
                                     FontSize="16"
                                     Cursor="Hand"
                                     VerticalAlignment="Center"
-                                    Click="btnClose_Click"
+                                    Visibility="Hidden"
                                     Width="250"
                                     Height="35"
                                     FontFamily="{StaticResource Montserrat}"
@@ -254,13 +257,14 @@
 
                         <StackPanel Grid.Column="1"
                                     Background="#515758"
-                                    Margin="20,0,0,0">
-                            
+                                    Margin="20,0,0,0"
+                                    x:Name="VideoLoaded">
+                            <MediaElement Name="mediaElementVideoLoaded" Height="248" Stretch="Uniform"/>
                         </StackPanel>
                     </Grid>
                 </Grid>
 
-                <Grid Grid.Row="1" x:Name="receiveVideoContainer">
+                <Grid Grid.Row="1" x:Name="receiveVideoContainer" Visibility="Hidden">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="40"/>
                         <RowDefinition/>
@@ -293,7 +297,7 @@
                                     FontSize="16"
                                     Cursor="Hand"
                                     VerticalAlignment="Center"
-                                    Click="btnClose_Click"
+
                                     Width="250"
                                     Height="35"
                                     FontFamily="{StaticResource Montserrat}"
@@ -328,7 +332,7 @@
                                     FontSize="16"
                                     Cursor="Hand"
                                     VerticalAlignment="Center"
-                                    Click="btnClose_Click"
+
                                     Width="250"
                                     Height="35"
                                     FontFamily="{StaticResource Montserrat}"

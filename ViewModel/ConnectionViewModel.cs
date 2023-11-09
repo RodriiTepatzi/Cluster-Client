@@ -24,6 +24,8 @@ namespace Cluster_Client.ViewModel
         private string _ipAddress;
         private int _port;
         private bool _isConnected;
+        private string _messagesPath;
+        private string _messages;
 
         public ICommand ExecuteConnectToServerCommand
         {
@@ -54,6 +56,7 @@ namespace Cluster_Client.ViewModel
                 OnPropertyChanged(nameof(Port));
             }
         }
+
         public bool IsConnected
         {
             get { return _isConnected; }
@@ -64,15 +67,36 @@ namespace Cluster_Client.ViewModel
             }
         }
 
+        public string MessagesPath
+        {
+            get { return _messagesPath; }
+            set
+            {
+                _messagesPath = value;
+                OnPropertyChanged(nameof(MessagesPath));
+            }
+        }
+
+        public string Messages
+        {
+            get { return _messages; }
+            set
+            {
+                _messages = value;
+                OnPropertyChanged(nameof(Messages));
+            }
+        }
 
         public ConnectionViewModel()
         {
             _coreHandler = CoreHandler.Instance;
-            _executeConnectToServerCommand = new CommandViewModel(ConnectAction);
-            _executeCloseWindowCommand = new CommandViewModel(CloseWindowAction);
             _ipAddress = "";
             _port = 6969;
+            _messagesPath = "Resources/Messages.xaml";
+            _messages = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, MessagesPath);
 
+            _executeConnectToServerCommand = new CommandViewModel(ConnectAction);
+            _executeCloseWindowCommand = new CommandViewModel(CloseWindowAction);
             _coreHandler.ConnectedStatusEvent += _coreHandler_ConnectedStatusEvent;
         }
 
@@ -82,22 +106,22 @@ namespace Cluster_Client.ViewModel
 
             if (IsConnected)
             {
-                var view = new VideoActionsView();
+                var newWindow = new VideoActionsView();
                 Application.Current.Dispatcher.Invoke(new Action(() =>
                 {
                     Application.Current.MainWindow.Close();
-                    Application.Current.MainWindow = view;
-                    view.Show();
+                    Application.Current.MainWindow = newWindow;
+                    newWindow.Show();
                 }));
             }
+
         }
         private void ConnectAction(object sender)
         {
             if (Port > 0 && !string.IsNullOrEmpty(IpAddress))
             {
-                string connectingMessagePath = "Resources/ConnectingMessage.xaml";
-                string connectingMessage = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, connectingMessagePath);
-                using (FileStream fs = new FileStream(connectingMessage, FileMode.Open))
+                
+                using (FileStream fs = new FileStream(Messages, FileMode.Open))
                 {
                     ResourceDictionary resourceDic = (ResourceDictionary)XamlReader.Load(fs);
                     StackPanel conMessage = (StackPanel)resourceDic["ConnectingMessage"];
@@ -110,7 +134,7 @@ namespace Cluster_Client.ViewModel
                 }
 
                 CoreHandler.Instance.ConnectToServerAsync(IpAddress, Port);
-            
+
             }
         }
 

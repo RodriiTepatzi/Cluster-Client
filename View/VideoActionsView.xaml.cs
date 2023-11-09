@@ -11,6 +11,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using Cluster_Client.ViewModel;
 
 namespace Cluster_Client.View
 {
@@ -19,6 +20,8 @@ namespace Cluster_Client.View
         public VideoActionsView()
         {
             InitializeComponent();
+            var viewModel = new VideoActionsViewModel(AllContent);
+            DataContext = viewModel;
         }
 
         private void Window_MouseDown(object sender, MouseButtonEventArgs e)
