@@ -18,7 +18,7 @@
     <TextBlock Text="Esperando por Servidores de Procesamiento..."
        Foreground="White"
        TextWrapping="Wrap"
-       FontSize="50"
+       FontSize="30"
        FontWeight="Medium"
        FontFamily="{StaticResource Montserrat}"
        TextAlignment="Center"
@@ -28,7 +28,7 @@
 
     <TextBlock Foreground="White"
            TextWrapping="Wrap"
-           FontSize="50"
+           FontSize="30"
            FontWeight="Medium"
            FontFamily="{StaticResource Montserrat}"
            TextAlignment="Center"
@@ -41,10 +41,10 @@
     cliente(s) antes de ti, por favor espera a tu turno...
     </TextBlock>
 
-    <TextBlock Text="Esperando una respuesta del Servidor Administrativo..."
+    <TextBlock Text="Esperando una respuesta del status del Servidor Administrativo..."
                Foreground="White"
                TextWrapping="Wrap"
-               FontSize="40"
+               FontSize="30"
                FontWeight="Medium"
                FontFamily="{StaticResource Montserrat}"
                TextAlignment="Center"

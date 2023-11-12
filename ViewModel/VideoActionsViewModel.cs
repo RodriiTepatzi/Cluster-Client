@@ -13,6 +13,9 @@ using System.Windows;
 using System.Windows.Markup;
 using System.Net;
 using Cluster_Client.Model;
+using System.Windows.Media.Imaging;
+using System.Net.Mime;
+using System.Windows.Automation.Peers;
 
 namespace Cluster_Client.ViewModel
 {
@@ -22,7 +25,6 @@ namespace Cluster_Client.ViewModel
         private ICommand _executeCloseWindowCommand;
         private ICommand _executeLoadVideoCommand;
         private ICommand _executePSLocalVideoCommand;
-
         private bool _isConnected;
         private bool _isVideoLoaded;
         private Status _serverDisponibility;
@@ -32,8 +34,9 @@ namespace Cluster_Client.ViewModel
         private Grid _allContent;
         private UIElement _defaultContent;
         private List<RowDefinition> _defaultRowDefinitions;
-        private byte[] _localVideo;
+        private string _localVideo;
         private bool _isLocalVideoStop;
+        private Dictionary<string, byte[]> VideoMemoryCache = new Dictionary<string, byte[]>();
 
         public ICommand ExecuteCloseWindowCommand
         {
@@ -101,7 +104,7 @@ namespace Cluster_Client.ViewModel
                 OnPropertyChanged(nameof(Messages));
             }
         }
-        public byte[] LocalVideo
+        public string LocalVideo
         {
             get { return _localVideo; }
             set
@@ -123,63 +126,40 @@ namespace Cluster_Client.ViewModel
         public VideoActionsViewModel(Grid allContent)
         {
             _isConnected = true;
-
             _coreHandler = CoreHandler.Instance;
             _executeCloseWindowCommand = new CommandViewModel(CloseWindowAction);
             _executeLoadVideoCommand = new CommandViewModel(LoadVideoAction);
             _executePSLocalVideoCommand = new CommandViewModel(PSLocalVideo);
-
             _coreHandler.ConnectedStatusEvent += _coreHandler_ConnectedStatusEvent;
             _coreHandler.ServerDisponibilityEvent += _coreHandler_ServerDisponibilityEvent;
             _coreHandler.ClientsBeforeEvent += _coreHandler_ClientsBeforeEvent;
             _coreHandler.VideoLoadedEvent += _coreHandler_VideoLoadedEvent;
             _coreHandler.LocalVideoEvent += _coreHandler_LocalVideoEvent;
-            
             _messagesPath = "Resources/Messages.xaml";
             _messages = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, MessagesPath);
-
-            _allContent = allContent;
-            _defaultContent = allContent.Children.Cast<UIElement>().FirstOrDefault();
-            _defaultRowDefinitions = allContent.RowDefinitions.ToList();
-
-            HandleContentChange();
+            _allContent = allContent; //This is the grid of this view
+            _defaultContent = allContent.Children.Cast<UIElement>().FirstOrDefault(); //This is the deafault content of the previus grid
+            _defaultRowDefinitions = allContent.RowDefinitions.ToList(); //This is the structure of the grid
+            HandleContentChange(); //When this view is loaded, change its content
         }
 
-        private void _coreHandler_LocalVideoEvent(object? sender, LocalVideoEventArgs e)
+        private void HandleContentChange()
         {
-            LocalVideo = e.LocalVideo;
-            ShowLocalVideo(LocalVideo);
-        }
-
-        private void ShowLocalVideo(byte[] videoBytes)
-        {
-            using (MemoryStream stream = new MemoryStream(videoBytes))
+            //While client is waiting for a satus from server show the response message
+            ResourceDictionary resourceDic;
+            using (FileStream fs = new FileStream(Messages, FileMode.Open))
             {
-                Uri videoUri = new Uri(stream.GetHashCode().ToString());
-                MediaElement mediaElementVideoLoaded = (MediaElement)Application.Current.MainWindow.FindName("mediaElementVideoLoaded");
-                mediaElementVideoLoaded.Source = videoUri;
-                mediaElementVideoLoaded.Stop();
-                IsLocalVideoStop = true;
+                resourceDic = (ResourceDictionary)XamlReader.Load(fs);
             }
-        }
-
-        private void _coreHandler_VideoLoadedEvent(object? sender, VideoLoadedEventArgs e)
-        {
-            IsVideoLoaded = e.IsVideoLoaded;
-
-            if (IsVideoLoaded)
-            {
-                Button btnPSbtnPSLoadVideo = (Button)Application.Current.MainWindow.FindName("btnPSLoadVideo");
-                btnPSbtnPSLoadVideo.Visibility = Visibility.Visible;
-                Button btnSendVideo = (Button)Application.Current.MainWindow.FindName("btnSendVideo");
-                btnSendVideo.Visibility = Visibility.Visible;
-            }
+            TextBlock rMessage = (TextBlock)resourceDic["ResponseMessage"];
+            //Show the message on the main grid
+            ChangeGridContent(rMessage);
         }
 
         private void ChangeGridContent(UIElement newContent)
         {
             _allContent.Children.Clear();
-
+            //If newContent is a message remove the row definitions of the main grid
             if (newContent is TextBlock textBlock)
             {
                 _allContent.RowDefinitions.Clear();
@@ -188,6 +168,7 @@ namespace Cluster_Client.ViewModel
                 _allContent.Children.Add(textBlock);
             }
             else
+            //if newContent is the deafault content, rebuild its row definitions
             {
                 _allContent.RowDefinitions.Clear();
                 foreach (var rowDefinition in _defaultRowDefinitions)
@@ -198,15 +179,43 @@ namespace Cluster_Client.ViewModel
             }
         }
 
-        private void HandleContentChange()
+        private void _coreHandler_LocalVideoEvent(object? sender, LocalVideoEventArgs e)
         {
-            ResourceDictionary resourceDic;
-            using (FileStream fs = new FileStream(Messages, FileMode.Open))
+            //Event to show the local video on its media element
+            LocalVideo = e.LocalVideoPath;
+            ShowLocalVideo(LocalVideo);
+        }
+
+        private void ShowLocalVideo(string localVideoPath)
+        {
+            MediaElement mediaElementVideoLoaded = (MediaElement)Application.Current.MainWindow.FindName("mediaElementVideoLoaded");
+            Uri uriLocalVideo = new Uri(localVideoPath);
+            mediaElementVideoLoaded.Source = uriLocalVideo;
+            mediaElementVideoLoaded.LoadedBehavior = MediaState.Manual;
+            mediaElementVideoLoaded.LoadedBehavior = MediaState.Play;
+            IsLocalVideoStop = false;
+            mediaElementVideoLoaded.MediaEnded += MediaElementVideoLoaded_MediaEnded;
+        }
+
+        public void MediaElementVideoLoaded_MediaEnded(object sender, RoutedEventArgs e)
+        {
+            MediaElement mediaElementVideoLoaded = (MediaElement)sender;
+            mediaElementVideoLoaded.LoadedBehavior = MediaState.Close;
+            mediaElementVideoLoaded.LoadedBehavior = MediaState.Play;
+            IsLocalVideoStop = false;
+        }
+
+        private void _coreHandler_VideoLoadedEvent(object? sender, VideoLoadedEventArgs e)
+        {
+            IsVideoLoaded = e.IsVideoLoaded;
+            //If local video is loaded, show its control buttons
+            if (IsVideoLoaded)
             {
-                resourceDic = (ResourceDictionary)XamlReader.Load(fs);
+                Button btnPSbtnPSLoadVideo = (Button)Application.Current.MainWindow.FindName("btnPSLoadVideo");
+                btnPSbtnPSLoadVideo.Visibility = Visibility.Visible;
+                Button btnSendVideo = (Button)Application.Current.MainWindow.FindName("btnSendVideo");
+                btnSendVideo.Visibility = Visibility.Visible;
             }
-            TextBlock rMessage = (TextBlock)resourceDic["ResponseMessage"];
-            ChangeGridContent(rMessage);
         }
 
         private void _coreHandler_ConnectedStatusEvent(object? sender, ConnectedStatusEventArgs e)
@@ -216,36 +225,33 @@ namespace Cluster_Client.ViewModel
 
         private void _coreHandler_ClientsBeforeEvent(object? sender, ClientsBeforeEventArgs e)
         {
-            ClientsBefore = e.clientsBefore;
+            ClientsBefore = e.clientsBefore; //Number of clients before me
         }
 
         private void _coreHandler_ServerDisponibilityEvent(object? sender, ServerDisponibilityEventArgs e)
         {
             ServerDisponibility = e.serverDisponibility;
+            //Open the messages resource
+            ResourceDictionary resourceDic;
+            using (FileStream fs = new FileStream(Messages, FileMode.Open))
+            {
+                resourceDic = (ResourceDictionary)XamlReader.Load(fs);
+            }
+            TextBlock message;
+            switch (ServerDisponibility)
+            {
+                case Status.Waiting:
+                    message = (TextBlock)resourceDic["WaitingMessage"];
+                    ChangeGridContent(message);
+                    break;
 
-            if (ServerDisponibility == Status.Waiting)
-            {
-                ResourceDictionary resourceDic;
-                using (FileStream fs = new FileStream(Messages, FileMode.Open))
-                {
-                    resourceDic = (ResourceDictionary)XamlReader.Load(fs);
-                }
-                TextBlock wMessage = (TextBlock)resourceDic["WaitingMessage"];
-                ChangeGridContent(wMessage);
-            } 
-            
-            else if (ServerDisponibility == Status.Busy)
-            {
-                ResourceDictionary resourceDic;
-                using (FileStream fs = new FileStream(Messages, FileMode.Open))
-                {
-                    resourceDic = (ResourceDictionary)XamlReader.Load(fs);
-                }
-                TextBlock bMessage = (TextBlock)resourceDic["BusyMessage"];
-                ChangeGridContent(bMessage);
-            } else if (ServerDisponibility == Status.Ready)
-            {
-
+                case Status.Busy:
+                    message = (TextBlock)resourceDic["BusyMessage"];
+                    ChangeGridContent(message);
+                    break;
+                case Status.Ready:
+                    ChangeGridContent(_defaultContent);
+                    break;
             }
         }
 
@@ -266,15 +272,14 @@ namespace Cluster_Client.ViewModel
         private void PSLocalVideo(object sender)
         {
             MediaElement mediaElementVideoLoaded = (MediaElement)Application.Current.MainWindow.FindName("mediaElementVideoLoaded");
-
             if (IsLocalVideoStop)
             {
-                mediaElementVideoLoaded.Play();
+                mediaElementVideoLoaded.LoadedBehavior = MediaState.Play;
                 IsLocalVideoStop = false;
             }
             else
             {
-                mediaElementVideoLoaded.Stop();
+                mediaElementVideoLoaded.LoadedBehavior = MediaState.Pause;
                 IsLocalVideoStop = true;
             }
         }

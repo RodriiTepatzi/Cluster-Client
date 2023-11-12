@@ -194,6 +194,7 @@
                                     Visibility="Hidden"
                                     Width="250"
                                     Height="35"
+                                    Command="{Binding ExecutePSLocalVideoCommand}"
                                     FontFamily="{StaticResource Montserrat}"
                                     Margin="0,5,0,5">
                                 <Button.Style>
@@ -259,7 +260,7 @@
                                     Background="#515758"
                                     Margin="20,0,0,0"
                                     x:Name="VideoLoaded">
-                            <MediaElement Name="mediaElementVideoLoaded" Height="248" Stretch="Uniform"/>
+                            <MediaElement Name="mediaElementVideoLoaded" Height="248" Stretch="Uniform" Visibility="Visible"/>
                         </StackPanel>
                     </Grid>
                 </Grid>

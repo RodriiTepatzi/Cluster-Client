@@ -36,5 +36,6 @@ namespace Cluster_Client.View
         {
             WindowState = WindowState.Minimized;
         }
+
     }
 }
