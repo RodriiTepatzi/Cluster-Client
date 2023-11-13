@@ -21,19 +21,17 @@ namespace Cluster_Client.Core
     public class CoreHandler
     {
         private readonly static CoreHandler _instace = new();
-
-        private Connection _localConnection = new();
-        private Connection _serverConnection = new();
+        private Connection _localConnection = new();//The client connection
+        private Connection _serverConnection = new();//Connection to serve
         private TcpClient _client = new TcpClient();
-
         public Connection LocalConnection { get { return _localConnection; } }
         public bool IsConnected { get; private set; }
         public bool IsVideoLoaded { get; private set; }
         public Status ServerDisponibility { get; private set; }
         public int ClientsBefore { get; private set; }
-        public byte[] LocalVideo { get; private set; }
+        public string LocalVideoPath { get; private set; }
 
-        //Eventos para actualizar la interfaz
+        //Events for update the UI
         public event EventHandler<ConnectedStatusEventArgs>? ConnectedStatusEvent;
         public event EventHandler<VideoLoadedEventArgs>? VideoLoadedEvent;
         public event EventHandler<ServerDisponibilityEventArgs>? ServerDisponibilityEvent;
@@ -50,7 +48,7 @@ namespace Cluster_Client.Core
         private void HandleVideoLoaded(bool value) => OnVideoLoaded(new VideoLoadedEventArgs(value));
         private void HandleServerDisponibility(Status value) => OnServerDisponibility(new ServerDisponibilityEventArgs(value));
         private void HandleClientsBefore(int value) => OnClientsBefore(new ClientsBeforeEventArgs(value));
-        private void HandleLocalVideo(byte[] value) => OnLacalVideo(new LocalVideoEventArgs(value));
+        private void HandleLocalVideo(string value) => OnLacalVideo(new LocalVideoEventArgs(value));
 
         private CoreHandler()
         {
@@ -58,7 +56,7 @@ namespace Cluster_Client.Core
             ServerDisponibility = Status.Waiting;
             ClientsBefore = 0;
             IsVideoLoaded = false;
-            byte[] LocalVideo = new byte[0];
+            LocalVideoPath = "";
         }
 
         public static CoreHandler Instance
@@ -70,26 +68,23 @@ namespace Cluster_Client.Core
         {
             _serverConnection.IpAddress = ipAddress;
             _serverConnection.Port = port;
-
+            //Obtain our IP
             List<string> ips = new List<string>();
-
             var entry = Dns.GetHostEntry(Dns.GetHostName());
-
             foreach (IPAddress ip in entry.AddressList)
                 if (ip.AddressFamily == AddressFamily.InterNetwork)
                     ips.Add(ip.ToString());
-
-
+            //Obtain our port
             var localport = FreeTcpPort(ips[0]);
             var localEndPoint = new IPEndPoint(IPAddress.Parse(ips[0]), localport);
-
+            //Define our local connection
             _localConnection.Port = localport;
             _localConnection.IpAddress = localEndPoint.Address.ToString();
-
             try
             {
+                //Connect to server
                 await _client.ConnectAsync(IPAddress.Parse(_serverConnection.IpAddress), _serverConnection.Port);
-
+                //If is connected, send our connection data to server 
                 if (_client.Connected)
                 {
                     _serverConnection.Stream = _client.GetStream();
@@ -97,7 +92,6 @@ namespace Cluster_Client.Core
                     _serverConnection.StreamReader = new StreamReader(_serverConnection.Stream);
 
                     var connection = new Connection();
-
                     connection.Port = _localConnection.Port;
                     connection.IpAddress = _localConnection.IpAddress;
 
@@ -109,50 +103,45 @@ namespace Cluster_Client.Core
                     };
 
                     var json = JsonConvert.SerializeObject(message);
-
                     _serverConnection.StreamWriter.WriteLine(json);
                     _serverConnection.StreamWriter.Flush();
 
                     IsConnected = true;
                     HandleConnectionStatus(IsConnected);
-
+                    //Start listen to server
                     Thread thread = new Thread(ListenToServerAsync);
                     thread.Start();
                 }
             }
             catch
-            {
-
-            }
+            {}
         }
 
         public void ListenToServerAsync()
         {
             while (_client.Connected)
             {
-
                 try
                 {
-
                     var dataFromClient = _serverConnection.StreamReader!.ReadLine();
                     var model = JsonConvert.DeserializeObject<Message>(dataFromClient!);
-
+                    //When message from server is a status
                     if (model!.Type == MessageType.Status)
                     {
-
                         var json = model.Content as string;
                         var content = JsonConvert.DeserializeObject<Status>(json!);
                         Status ServerDisponibility = content;
-
+                        //Send Server disponibility to UI
                         Application.Current.Dispatcher.Invoke(new Action(() =>
                         {
                             HandleServerDisponibility(ServerDisponibility);
                         }));
                     }
+                    //When message from server is a turn
                     if (model!.Type == MessageType.Turn)
                     {
                         ClientsBefore = int.Parse(model!.Content! as string);
-
+                        //Send clients before to UI
                         Application.Current.Dispatcher.Invoke(new Action(() =>
                         {
                             HandleClientsBefore(ClientsBefore);
@@ -160,9 +149,7 @@ namespace Cluster_Client.Core
                     }
                 }
                 catch
-                {
-
-                }
+                {}
             }
         }
 
@@ -172,7 +159,6 @@ namespace Cluster_Client.Core
             listener.Start();
             int port = ((IPEndPoint)listener.LocalEndpoint).Port;
             listener.Stop();
-
             return port;
         }
 
@@ -184,28 +170,29 @@ namespace Cluster_Client.Core
 
         public void LoadVideo()
         {
+            string pathLocalVideo = "";
+            //Open the dialog to chose the video
             OpenFileDialog openFileDialog = new OpenFileDialog();
+            //Filter the files as videos
             openFileDialog.Filter = "Archivos de video|*.avi;*.wmv;*.mp4;*.mkv;*.mpeg;*.flv;*.3gp;*.mov|Todos los archivos (*.*)|*.*";
             if (openFileDialog.ShowDialog() == true)
             {
-                string path = openFileDialog.FileName;
-
-                if (!string.IsNullOrEmpty(path))
+                pathLocalVideo = openFileDialog.FileName;
+                if (!string.IsNullOrEmpty(pathLocalVideo))
                 {
-                    byte[] video = File.ReadAllBytes(path);
-                    string videoName = System.IO.Path.GetFileNameWithoutExtension(openFileDialog.FileName);
-                    string videoExtension = System.IO.Path.GetExtension(openFileDialog.FileName).TrimStart('.').ToLower();
+                    byte[] video = File.ReadAllBytes(pathLocalVideo);//get the video in bytes
+                    string videoName = System.IO.Path.GetFileNameWithoutExtension(openFileDialog.FileName); //get the video name
+                    string videoFormat = System.IO.Path.GetExtension(openFileDialog.FileName).TrimStart('.').ToLower(); //get the video format
 
                     if (video.Length > 0)
                     {
                         IsVideoLoaded = true;
                         Application.Current.Dispatcher.Invoke(new Action(() =>
                         {
+                            HandleLocalVideo(pathLocalVideo);
                             HandleVideoLoaded(IsVideoLoaded);
-                            HandleLocalVideo(video);
                         }));
                     }
-
                 }
             }
         }

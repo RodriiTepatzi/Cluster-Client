@@ -8,11 +8,11 @@ namespace Cluster_Client.Core.Events
 {
     public class LocalVideoEventArgs
     {
-        public byte[] LocalVideo { get; set; }
+        public string LocalVideoPath { get; set; }
 
-        public LocalVideoEventArgs(byte[] localVideo)
+        public LocalVideoEventArgs(string localVideoPath)
         {
-            LocalVideo = localVideo;
+            LocalVideoPath = localVideoPath;
         }
     }
 }
