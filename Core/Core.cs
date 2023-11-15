@@ -30,6 +30,12 @@ namespace Cluster_Client.Core
         public Status ServerDisponibility { get; private set; }
         public int ClientsBefore { get; private set; }
         public string LocalVideoPath { get; private set; }
+        public bool IsVideoSended {  get; private set; }
+        public byte[] Video { get; private set; }
+        public string VideoFormat {  get; private set; }
+        public Video VideoProcessed { get; private set; }
+        public byte[] VideoProcessedByte { get; private set; }
+        public string VideoProcessedFormat { get; private set; }
 
         //Events for update the UI
         public event EventHandler<ConnectedStatusEventArgs>? ConnectedStatusEvent;
@@ -37,18 +43,21 @@ namespace Cluster_Client.Core
         public event EventHandler<ServerDisponibilityEventArgs>? ServerDisponibilityEvent;
         public event EventHandler<ClientsBeforeEventArgs>? ClientsBeforeEvent;
         public event EventHandler<LocalVideoEventArgs>? LocalVideoEvent;
+        public event EventHandler<IsVideoSendedEventArgs>? IsVideoSendedEvent;
 
         private void OnStatusConnectedChanged(ConnectedStatusEventArgs e) => ConnectedStatusEvent?.Invoke(this, e);
         private void OnVideoLoaded(VideoLoadedEventArgs e) => VideoLoadedEvent?.Invoke(this, e);
         private void OnServerDisponibility(ServerDisponibilityEventArgs e) => ServerDisponibilityEvent?.Invoke(this, e);
         private void OnClientsBefore(ClientsBeforeEventArgs e) => ClientsBeforeEvent?.Invoke(this, e);
         private void OnLacalVideo(LocalVideoEventArgs e) => LocalVideoEvent?.Invoke(this, e);
+        private void OnVideoSended(IsVideoSendedEventArgs e) => IsVideoSendedEvent?.Invoke(this, e);
 
         private void HandleConnectionStatus(bool value) => OnStatusConnectedChanged(new ConnectedStatusEventArgs(value));
         private void HandleVideoLoaded(bool value) => OnVideoLoaded(new VideoLoadedEventArgs(value));
         private void HandleServerDisponibility(Status value) => OnServerDisponibility(new ServerDisponibilityEventArgs(value));
         private void HandleClientsBefore(int value) => OnClientsBefore(new ClientsBeforeEventArgs(value));
         private void HandleLocalVideo(string value) => OnLacalVideo(new LocalVideoEventArgs(value));
+        private void HandleVideoSended(bool value) => OnVideoSended(new IsVideoSendedEventArgs(value));
 
         private CoreHandler()
         {
@@ -57,6 +66,11 @@ namespace Cluster_Client.Core
             ClientsBefore = 0;
             IsVideoLoaded = false;
             LocalVideoPath = "";
+            IsVideoSended = false;
+            Video = new byte[0];
+            VideoFormat = "";
+            VideoProcessedByte = new byte[0];
+            VideoProcessedFormat = "";
         }
 
         public static CoreHandler Instance
@@ -147,6 +161,12 @@ namespace Cluster_Client.Core
                             HandleClientsBefore(ClientsBefore);
                         }));
                     }
+
+                    //Wjen message from serveer is Processed Data
+                    if (model!.Type == MessageType.ProcessedData)
+                    {
+                        VideoProcessed = model!.Content! as Video;
+                    }
                 }
                 catch
                 {}
@@ -180,11 +200,11 @@ namespace Cluster_Client.Core
                 pathLocalVideo = openFileDialog.FileName;
                 if (!string.IsNullOrEmpty(pathLocalVideo))
                 {
-                    byte[] video = File.ReadAllBytes(pathLocalVideo);//get the video in bytes
-                    string videoName = System.IO.Path.GetFileNameWithoutExtension(openFileDialog.FileName); //get the video name
-                    string videoFormat = System.IO.Path.GetExtension(openFileDialog.FileName).TrimStart('.').ToLower(); //get the video format
+                    Video = File.ReadAllBytes(pathLocalVideo);//get the video in bytes
+                    //string videoName = System.IO.Path.GetFileNameWithoutExtension(openFileDialog.FileName); //get the video name
+                    VideoFormat = System.IO.Path.GetExtension(openFileDialog.FileName).TrimStart('.').ToLower(); //get the video format
 
-                    if (video.Length > 0)
+                    if (Video.Length > 0)
                     {
                         IsVideoLoaded = true;
                         Application.Current.Dispatcher.Invoke(new Action(() =>
@@ -195,6 +215,38 @@ namespace Cluster_Client.Core
                     }
                 }
             }
+        }
+
+        public void SendVideo()
+        {
+            _serverConnection.Stream = _client.GetStream();
+            _serverConnection.StreamWriter = new StreamWriter(_serverConnection.Stream);
+            _serverConnection.StreamReader = new StreamReader(_serverConnection.Stream);
+
+            var connection = new Connection();
+            connection.Port = _localConnection.Port;
+            connection.IpAddress = _localConnection.IpAddress;
+
+            var video = new Video();
+            video.format = VideoFormat;
+            video.data = Video;
+
+            var message = new Message
+            {
+                Type = MessageType.Data,
+                Content = JsonConvert.SerializeObject(video),
+                Connection = connection,
+            };
+
+            var json = JsonConvert.SerializeObject(message);
+            _serverConnection.StreamWriter.WriteLine(json);
+            _serverConnection.StreamWriter.Flush();
+
+            IsVideoSended = true;
+            Application.Current.Dispatcher?.Invoke(new Action(() =>
+            {
+                HandleVideoSended(IsVideoSended);
+            }));
         }
     }
 }

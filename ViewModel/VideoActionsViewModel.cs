@@ -25,6 +25,7 @@ namespace Cluster_Client.ViewModel
         private ICommand _executeCloseWindowCommand;
         private ICommand _executeLoadVideoCommand;
         private ICommand _executePSLocalVideoCommand;
+        private ICommand _executeSendVideoCommand;
         private bool _isConnected;
         private bool _isVideoLoaded;
         private Status _serverDisponibility;
@@ -32,11 +33,13 @@ namespace Cluster_Client.ViewModel
         private string _messagesPath;
         private string _messages;
         private Grid _allContent;
-        private UIElement _defaultContent;
-        private List<RowDefinition> _defaultRowDefinitions;
+        private UIElement _defaultContentMain;
+        private List<RowDefinition> _defaultRowDefinitionsMain;
         private string _localVideo;
         private bool _isLocalVideoStop;
-        private Dictionary<string, byte[]> VideoMemoryCache = new Dictionary<string, byte[]>();
+        private bool _isVideoSended;
+        private UIElement _defaultContentRecived;
+        private List<RowDefinition> _defaultRowDefinitionsRecived;
 
         public ICommand ExecuteCloseWindowCommand
         {
@@ -49,6 +52,10 @@ namespace Cluster_Client.ViewModel
         public ICommand ExecutePSLocalVideoCommand
         {
             get { return _executePSLocalVideoCommand; }
+        }
+        public ICommand ExecuteSendVideoCommand
+        {
+            get { return _executeSendVideoCommand; }
         }
         public bool IsConnected
         {
@@ -122,6 +129,15 @@ namespace Cluster_Client.ViewModel
                 OnPropertyChanged(nameof(IsLocalVideoStop));
             }
         }
+        public bool IsVideoSended
+        {
+            get { return _isVideoSended; }
+            set
+            {
+                _isVideoSended = value;
+                OnPropertyChanged(nameof(IsVideoSended));
+            }
+        }
 
         public VideoActionsViewModel(Grid allContent)
         {
@@ -130,6 +146,7 @@ namespace Cluster_Client.ViewModel
             _executeCloseWindowCommand = new CommandViewModel(CloseWindowAction);
             _executeLoadVideoCommand = new CommandViewModel(LoadVideoAction);
             _executePSLocalVideoCommand = new CommandViewModel(PSLocalVideo);
+            _executeSendVideoCommand = new CommandViewModel(SendVideo);
             _coreHandler.ConnectedStatusEvent += _coreHandler_ConnectedStatusEvent;
             _coreHandler.ServerDisponibilityEvent += _coreHandler_ServerDisponibilityEvent;
             _coreHandler.ClientsBeforeEvent += _coreHandler_ClientsBeforeEvent;
@@ -138,8 +155,8 @@ namespace Cluster_Client.ViewModel
             _messagesPath = "Resources/Messages.xaml";
             _messages = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, MessagesPath);
             _allContent = allContent; //This is the grid of this view
-            _defaultContent = allContent.Children.Cast<UIElement>().FirstOrDefault(); //This is the deafault content of the previus grid
-            _defaultRowDefinitions = allContent.RowDefinitions.ToList(); //This is the structure of the grid
+            _defaultContentMain = allContent.Children.Cast<UIElement>().FirstOrDefault(); //This is the deafault content of the previus grid
+            _defaultRowDefinitionsMain = allContent.RowDefinitions.ToList(); //This is the structure of the grid
             HandleContentChange(); //When this view is loaded, change its content
         }
 
@@ -171,7 +188,7 @@ namespace Cluster_Client.ViewModel
             //if newContent is the deafault content, rebuild its row definitions
             {
                 _allContent.RowDefinitions.Clear();
-                foreach (var rowDefinition in _defaultRowDefinitions)
+                foreach (var rowDefinition in _defaultRowDefinitionsMain)
                 {
                     _allContent.RowDefinitions.Add(rowDefinition);
                 }
@@ -250,7 +267,7 @@ namespace Cluster_Client.ViewModel
                     ChangeGridContent(message);
                     break;
                 case Status.Ready:
-                    ChangeGridContent(_defaultContent);
+                    ChangeGridContent(_defaultContentMain);
                     break;
             }
         }
@@ -269,6 +286,11 @@ namespace Cluster_Client.ViewModel
             CoreHandler.Instance.LoadVideo();
         }
 
+        private void SendVideo(object sender)
+        {
+            CoreHandler.Instance.SendVideo();
+        }
+
         private void PSLocalVideo(object sender)
         {
             MediaElement mediaElementVideoLoaded = (MediaElement)Application.Current.MainWindow.FindName("mediaElementVideoLoaded");
@@ -281,6 +303,31 @@ namespace Cluster_Client.ViewModel
             {
                 mediaElementVideoLoaded.LoadedBehavior = MediaState.Pause;
                 IsLocalVideoStop = true;
+            }
+        }
+
+        private void _coreHandler_IsVideoSendedEvent(object sender, IsVideoSendedEventArgs e) 
+        {
+            IsVideoSended = e.IsVideoSended;
+            if(IsVideoSended)
+            {
+                Grid gridRecived = (Grid)Application.Current.MainWindow.FindName("receiveVideoContainer");
+                _defaultContentRecived = gridRecived.Children.Cast<UIElement>().FirstOrDefault();
+                _defaultRowDefinitionsRecived = gridRecived.RowDefinitions.ToList();
+
+                using (FileStream fs = new FileStream(Messages, FileMode.Open))
+                {
+                    ResourceDictionary resourceDic = (ResourceDictionary)XamlReader.Load(fs); 
+                    TextBlock sendMessage = (TextBlock)resourceDic["WaitingVideoMessage"]; 
+                    Application.Current.Dispatcher.Invoke(new Action(() =>
+                    {
+                        gridRecived.RowDefinitions.Clear();
+                        gridRecived.RowDefinitions.Add(new RowDefinition());
+                        Grid.SetRow(sendMessage, 0);
+                        gridRecived.Children.Add(sendMessage);
+                    }));
+                }
+                gridRecived.Visibility = Visibility.Visible;
             }
         }
     }
