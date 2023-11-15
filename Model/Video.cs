@@ -10,6 +10,6 @@ namespace Cluster_Client.Model
     {
         public string format {  get; set; }
 
-        public List<byte[]> data { get; set; }
+        public byte[] data { get; set; }
     }
 }

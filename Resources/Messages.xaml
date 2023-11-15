@@ -51,4 +51,18 @@
                HorizontalAlignment="Center"
                VerticalAlignment="Center"
                x:Key="ResponseMessage"></TextBlock>
+
+    <TextBlock Foreground="White"
+               FontFamily="{StaticResource Montserrat}"
+               FontSize="20"
+               FontWeight="Medium"
+               TextAlignment="Center"
+               HorizontalAlignment="Center"
+               VerticalAlignment="Center"
+               x:Key="WaitingVideoMessage">
+        Video enviado.
+        <LineBreak/>
+        Esperendo por el video procesado...
+    </TextBlock>
+    
 </ResourceDictionary>
