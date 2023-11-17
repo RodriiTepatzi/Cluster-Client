@@ -26,6 +26,8 @@ namespace Cluster_Client.ViewModel
         private ICommand _executeLoadVideoCommand;
         private ICommand _executePSLocalVideoCommand;
         private ICommand _executeSendVideoCommand;
+        private ICommand _executeSaveVideoCommand;
+        private ICommand _executePSReceivedVideoCommand;
         private bool _isConnected;
         private bool _isVideoLoaded;
         private Status _serverDisponibility;
@@ -37,17 +39,20 @@ namespace Cluster_Client.ViewModel
         private List<RowDefinition> _defaultRowDefinitionsMain;
         private string _localVideo;
         private bool _isLocalVideoStop;
+        private bool _isReceivedVideoStop;
         private bool _isVideoSended;
-        private UIElement _defaultContentRecived;
-        private List<RowDefinition> _defaultRowDefinitionsRecived;
+        private UIElement _defaultContentReceived;
+        private List<RowDefinition> _defaultRowDefinitionsReceived;
+        private bool _isVideoReceived;
+        private string _temporalyPathVideoReceived;
 
         public ICommand ExecuteCloseWindowCommand
         {
             get { return _executeCloseWindowCommand; }
         }
         public ICommand ExecuteLoadVideoCommand
-        { 
-            get { return _executeLoadVideoCommand; } 
+        {
+            get { return _executeLoadVideoCommand; }
         }
         public ICommand ExecutePSLocalVideoCommand
         {
@@ -56,6 +61,14 @@ namespace Cluster_Client.ViewModel
         public ICommand ExecuteSendVideoCommand
         {
             get { return _executeSendVideoCommand; }
+        }
+        public ICommand ExecuteSaveVideoCommand
+        {
+            get { return _executeSaveVideoCommand; }
+        }
+        public ICommand ExecutePSReceivedVideoCommand
+        {
+            get { return _executePSReceivedVideoCommand; }
         }
         public bool IsConnected
         {
@@ -129,6 +142,15 @@ namespace Cluster_Client.ViewModel
                 OnPropertyChanged(nameof(IsLocalVideoStop));
             }
         }
+        public bool IsReceivedVideoStop
+        {
+            get { return _isReceivedVideoStop; }
+            set
+            {
+                _isReceivedVideoStop = value;
+                OnPropertyChanged(nameof(IsReceivedVideoStop));
+            }
+        }
         public bool IsVideoSended
         {
             get { return _isVideoSended; }
@@ -138,6 +160,24 @@ namespace Cluster_Client.ViewModel
                 OnPropertyChanged(nameof(IsVideoSended));
             }
         }
+        public bool IsVideoReceived
+        {
+            get { return _isVideoReceived; }
+            set
+            {
+                _isVideoReceived = value;
+                OnPropertyChanged(nameof(_isVideoReceived));
+            }
+        }
+        public string TemporalyPathVideoReceived
+        {
+            get { return _temporalyPathVideoReceived; }
+            set
+            {
+                _temporalyPathVideoReceived = value;
+                OnPropertyChanged(nameof(_temporalyPathVideoReceived));
+            }
+        }
 
         public VideoActionsViewModel(Grid allContent)
         {
@@ -145,13 +185,17 @@ namespace Cluster_Client.ViewModel
             _coreHandler = CoreHandler.Instance;
             _executeCloseWindowCommand = new CommandViewModel(CloseWindowAction);
             _executeLoadVideoCommand = new CommandViewModel(LoadVideoAction);
-            _executePSLocalVideoCommand = new CommandViewModel(PSLocalVideo);
-            _executeSendVideoCommand = new CommandViewModel(SendVideo);
+            _executePSLocalVideoCommand = new CommandViewModel(PSLocalVideoAction);
+            _executeSendVideoCommand = new CommandViewModel(SendVideoAction);
+            _executeSendVideoCommand = new CommandViewModel(SaveVideoAction);
+            _executePSReceivedVideoCommand = new CommandViewModel(PSReceivedVideoAction);
             _coreHandler.ConnectedStatusEvent += _coreHandler_ConnectedStatusEvent;
             _coreHandler.ServerDisponibilityEvent += _coreHandler_ServerDisponibilityEvent;
             _coreHandler.ClientsBeforeEvent += _coreHandler_ClientsBeforeEvent;
             _coreHandler.VideoLoadedEvent += _coreHandler_VideoLoadedEvent;
             _coreHandler.LocalVideoEvent += _coreHandler_LocalVideoEvent;
+            _coreHandler.IsVideoSendedEvent += _coreHandler_IsVideoSendedEvent;
+            _coreHandler.IsVideoReceivedEvent += _coreHandler_IsVideoReceivedEvent;
             _messagesPath = "Resources/Messages.xaml";
             _messages = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, MessagesPath);
             _allContent = allContent; //This is the grid of this view
@@ -209,8 +253,8 @@ namespace Cluster_Client.ViewModel
             Uri uriLocalVideo = new Uri(localVideoPath);
             mediaElementVideoLoaded.Source = uriLocalVideo;
             mediaElementVideoLoaded.LoadedBehavior = MediaState.Manual;
-            mediaElementVideoLoaded.LoadedBehavior = MediaState.Play;
-            IsLocalVideoStop = false;
+            mediaElementVideoLoaded.LoadedBehavior = MediaState.Pause;
+            IsLocalVideoStop = true;
             mediaElementVideoLoaded.MediaEnded += MediaElementVideoLoaded_MediaEnded;
         }
 
@@ -286,12 +330,12 @@ namespace Cluster_Client.ViewModel
             CoreHandler.Instance.LoadVideo();
         }
 
-        private void SendVideo(object sender)
+        private void SendVideoAction(object sender)
         {
             CoreHandler.Instance.SendVideo();
         }
 
-        private void PSLocalVideo(object sender)
+        private void PSLocalVideoAction(object sender)
         {
             MediaElement mediaElementVideoLoaded = (MediaElement)Application.Current.MainWindow.FindName("mediaElementVideoLoaded");
             if (IsLocalVideoStop)
@@ -306,29 +350,87 @@ namespace Cluster_Client.ViewModel
             }
         }
 
-        private void _coreHandler_IsVideoSendedEvent(object sender, IsVideoSendedEventArgs e) 
+        private void _coreHandler_IsVideoSendedEvent(object sender, IsVideoSendedEventArgs e)
         {
             IsVideoSended = e.IsVideoSended;
-            if(IsVideoSended)
+            if (IsVideoSended)
             {
-                Grid gridRecived = (Grid)Application.Current.MainWindow.FindName("receiveVideoContainer");
-                _defaultContentRecived = gridRecived.Children.Cast<UIElement>().FirstOrDefault();
-                _defaultRowDefinitionsRecived = gridRecived.RowDefinitions.ToList();
+                Grid gridReceived = (Grid)Application.Current.MainWindow.FindName("receiveVideoContainer");
+                _defaultContentReceived = gridReceived.Children.Cast<UIElement>().FirstOrDefault();
+                _defaultRowDefinitionsReceived = gridReceived.RowDefinitions.ToList();
 
                 using (FileStream fs = new FileStream(Messages, FileMode.Open))
                 {
-                    ResourceDictionary resourceDic = (ResourceDictionary)XamlReader.Load(fs); 
-                    TextBlock sendMessage = (TextBlock)resourceDic["WaitingVideoMessage"]; 
+                    ResourceDictionary resourceDic = (ResourceDictionary)XamlReader.Load(fs);
+                    TextBlock sendMessage = (TextBlock)resourceDic["WaitingVideoMessage"];
                     Application.Current.Dispatcher.Invoke(new Action(() =>
                     {
-                        gridRecived.RowDefinitions.Clear();
-                        gridRecived.RowDefinitions.Add(new RowDefinition());
+                        gridReceived.RowDefinitions.Clear();
+                        gridReceived.RowDefinitions.Add(new RowDefinition());
                         Grid.SetRow(sendMessage, 0);
-                        gridRecived.Children.Add(sendMessage);
+                        gridReceived.Children.Add(sendMessage);
                     }));
                 }
-                gridRecived.Visibility = Visibility.Visible;
+                gridReceived.Visibility = Visibility.Visible;
             }
+        }
+
+        private void _coreHandler_IsVideoReceivedEvent(object? sender, IsVideoReceivedEventArgs e)
+        {
+            IsVideoReceived = e.IsVideoReceived;
+            TemporalyPathVideoReceived = e.TemporalyPathVideoReceived;
+
+            if (IsVideoReceived)
+            {
+                Grid gridReceived = (Grid)Application.Current.MainWindow.FindName("receiveVideoContainer");
+                gridReceived.RowDefinitions.Clear();
+                foreach (var rowDefinition in _defaultRowDefinitionsReceived)
+                {
+                    gridReceived.RowDefinitions.Add(rowDefinition);
+                }
+                gridReceived.Children.Add(_defaultContentReceived);
+
+                ShowVideoReceived(TemporalyPathVideoReceived);
+            }
+        }
+
+        private void ShowVideoReceived(string TempolaryPathVideoReceived)
+        {
+            MediaElement mediaElementVideoReceived = (MediaElement)Application.Current.MainWindow.FindName("mediaElementVideoReceived");
+            Uri uriLocalVideo = new Uri(TempolaryPathVideoReceived);
+            mediaElementVideoReceived.Source = uriLocalVideo;
+            mediaElementVideoReceived.LoadedBehavior = MediaState.Manual;
+            mediaElementVideoReceived.LoadedBehavior = MediaState.Pause;
+            IsReceivedVideoStop = true;
+            mediaElementVideoReceived.MediaEnded += MediaElementVideoReceived_MediaEnded;
+        }
+
+        public void MediaElementVideoReceived_MediaEnded(object sender, RoutedEventArgs e)
+        {
+            MediaElement mediaElementVideoReceived = (MediaElement)sender;
+            mediaElementVideoReceived.LoadedBehavior = MediaState.Close;
+            mediaElementVideoReceived.LoadedBehavior = MediaState.Play;
+            IsReceivedVideoStop = false;
+        }
+
+        private void PSReceivedVideoAction(object sender)
+        {
+            MediaElement mediaElementVideoReceived = (MediaElement)Application.Current.MainWindow.FindName("mediaElementVideoReceived"); 
+            if (IsLocalVideoStop)
+            {
+                mediaElementVideoReceived.LoadedBehavior = MediaState.Play;
+                IsLocalVideoStop = false;
+            }
+            else
+            {
+                mediaElementVideoReceived.LoadedBehavior = MediaState.Pause;
+                IsLocalVideoStop = true;
+            }
+        }
+
+        private void SaveVideoAction(object sender)
+        {
+            CoreHandler.Instance.SaveVideo();
         }
     }
 }

@@ -230,6 +230,7 @@
                                     Visibility="Hidden"
                                     Width="250"
                                     Height="35"
+                                    Command="{Binding ExecuteSendVideoCommand}"
                                     FontFamily="{StaticResource Montserrat}"
                                     Margin="0,5,0,0">
                                 <Button.Style>
@@ -298,7 +299,7 @@
                                     FontSize="16"
                                     Cursor="Hand"
                                     VerticalAlignment="Center"
-
+                                    Command="{Binding ExecuteSaveVideoCommand}"
                                     Width="250"
                                     Height="35"
                                     FontFamily="{StaticResource Montserrat}"
@@ -333,7 +334,7 @@
                                     FontSize="16"
                                     Cursor="Hand"
                                     VerticalAlignment="Center"
-
+                                    Command="{Binding ExecutePSReceivedVideoCommand}"
                                     Width="250"
                                     Height="35"
                                     FontFamily="{StaticResource Montserrat}"
@@ -363,7 +364,9 @@
 
                         <StackPanel Grid.Column="1"
                                     Background="#515758"
-                                    Margin="20,0,0,0">
+                                    Margin="20,0,0,0"
+                                    x:Name="VideoReceived">
+                            <MediaElement Name="mediaElementVideoReceived" Height="248" Stretch="Uniform" Visibility="Visible"/>
                         </StackPanel>
                     </Grid>
                     
