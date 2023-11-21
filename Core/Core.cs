@@ -173,8 +173,8 @@ namespace Cluster_Client.Core
                     if (model!.Type == MessageType.ProcessedData)
                     {
                         VideoProcessed = model!.Content! as Video;
-                        VideoProcessedByte = VideoProcessed.data;
-                        VideoProcessedFormat = VideoProcessed.format;
+                        VideoProcessedByte = VideoProcessed.Data;
+                        VideoProcessedFormat = VideoProcessed.Format;
                         if (VideoProcessedByte != null)
                         {
                             SaveTemporalyVideoReceived(VideoProcessedByte, VideoProcessedFormat);
@@ -251,8 +251,8 @@ namespace Cluster_Client.Core
             connection.IpAddress = _localConnection.IpAddress;
 
             var video = new Video();
-            video.format = VideoFormat;
-            video.data = Video;
+            video.Format = VideoFormat;
+            video.Data = Video;
 
             var message = new Message
             {
