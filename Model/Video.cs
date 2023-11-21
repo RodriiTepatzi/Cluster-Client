@@ -8,8 +8,8 @@ namespace Cluster_Client.Model
 {
     public class Video
     {
-        public string format {  get; set; }
+        public string Format {  get; set; }
 
-        public byte[] data { get; set; }
+        public byte[] Data { get; set; }
     }
 }

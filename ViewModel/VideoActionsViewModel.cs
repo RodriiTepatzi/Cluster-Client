@@ -187,7 +187,7 @@ namespace Cluster_Client.ViewModel
             _executeLoadVideoCommand = new CommandViewModel(LoadVideoAction);
             _executePSLocalVideoCommand = new CommandViewModel(PSLocalVideoAction);
             _executeSendVideoCommand = new CommandViewModel(SendVideoAction);
-            _executeSendVideoCommand = new CommandViewModel(SaveVideoAction);
+            _executeSaveVideoCommand = new CommandViewModel(SaveVideoAction);
             _executePSReceivedVideoCommand = new CommandViewModel(PSReceivedVideoAction);
             _coreHandler.ConnectedStatusEvent += _coreHandler_ConnectedStatusEvent;
             _coreHandler.ServerDisponibilityEvent += _coreHandler_ServerDisponibilityEvent;
