@@ -11,5 +11,5 @@ namespace Cluster_Client.Model
         public string Format {  get; set; }
 
         public byte[] Data { get; set; }
-    }
+	}
 }
