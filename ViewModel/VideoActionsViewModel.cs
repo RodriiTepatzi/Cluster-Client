@@ -16,6 +16,7 @@ using Cluster_Client.Model;
 using System.Windows.Media.Imaging;
 using System.Net.Mime;
 using System.Windows.Automation.Peers;
+using System.Reflection.Metadata;
 
 namespace Cluster_Client.ViewModel
 {
@@ -35,13 +36,13 @@ namespace Cluster_Client.ViewModel
         private string _messagesPath;
         private string _messages;
         private Grid _allContent;
-        private UIElement _defaultContentMain;
+        private List<UIElement> _defaultContentMain;
         private List<RowDefinition> _defaultRowDefinitionsMain;
         private string _localVideo;
         private bool _isLocalVideoStop;
         private bool _isReceivedVideoStop;
         private bool _isVideoSended;
-        private UIElement _defaultContentReceived;
+        private List <UIElement> _defaultContentReceived;
         private List<RowDefinition> _defaultRowDefinitionsReceived;
         private bool _isVideoReceived;
         private string _temporalyPathVideoReceived;
@@ -199,7 +200,7 @@ namespace Cluster_Client.ViewModel
             _messagesPath = "Resources/Messages.xaml";
             _messages = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, MessagesPath);
             _allContent = allContent; //This is the grid of this view
-            _defaultContentMain = allContent.Children.Cast<UIElement>().FirstOrDefault(); //This is the deafault content of the previus grid
+            _defaultContentMain = allContent.Children.Cast<UIElement>().ToList(); //This is the deafault content of the previus grid
             _defaultRowDefinitionsMain = allContent.RowDefinitions.ToList(); //This is the structure of the grid
             HandleContentChange(); //When this view is loaded, change its content
         }
@@ -217,10 +218,22 @@ namespace Cluster_Client.ViewModel
             ChangeGridContent(rMessage);
         }
 
-        private void ChangeGridContent(UIElement newContent)
+        private void ChangeGridContent(object content)
         {
             _allContent.Children.Clear();
-            //If newContent is a message remove the row definitions of the main grid
+
+            if (content is UIElement singleElement)
+            {
+                HandleSingleElement(singleElement);
+            }
+            else if (content is IEnumerable<UIElement> elementList)
+            {
+                HandleElementList(elementList);
+            }
+        }
+
+        private void HandleSingleElement(UIElement newContent)
+        {
             if (newContent is TextBlock textBlock)
             {
                 _allContent.RowDefinitions.Clear();
@@ -229,14 +242,28 @@ namespace Cluster_Client.ViewModel
                 _allContent.Children.Add(textBlock);
             }
             else
-            //if newContent is the deafault content, rebuild its row definitions
             {
-                _allContent.RowDefinitions.Clear();
-                foreach (var rowDefinition in _defaultRowDefinitionsMain)
-                {
-                    _allContent.RowDefinitions.Add(rowDefinition);
-                }
+                RebuildRowDefinitions();
                 _allContent.Children.Add(newContent);
+            }
+        }
+
+        private void RebuildRowDefinitions()
+        {
+            _allContent.RowDefinitions.Clear();
+
+            foreach (var rowDefinition in _defaultRowDefinitionsMain)
+            {
+                _allContent.RowDefinitions.Add(rowDefinition);
+            }
+        }
+
+        private void HandleElementList(IEnumerable<UIElement> elementList)
+        {
+            RebuildRowDefinitions();
+            foreach (var element in elementList)
+            {
+                _allContent.Children.Add(element);
             }
         }
 
@@ -356,7 +383,7 @@ namespace Cluster_Client.ViewModel
             if (IsVideoSended)
             {
                 Grid gridReceived = (Grid)Application.Current.MainWindow.FindName("receiveVideoContainer");
-                _defaultContentReceived = gridReceived.Children.Cast<UIElement>().FirstOrDefault();
+                _defaultContentReceived = gridReceived.Children.Cast<UIElement>().ToList();
                 _defaultRowDefinitionsReceived = gridReceived.RowDefinitions.ToList();
 
                 using (FileStream fs = new FileStream(Messages, FileMode.Open))
@@ -365,6 +392,7 @@ namespace Cluster_Client.ViewModel
                     TextBlock sendMessage = (TextBlock)resourceDic["WaitingVideoMessage"];
                     Application.Current.Dispatcher.Invoke(new Action(() =>
                     {
+                        gridReceived.Children.Clear();
                         gridReceived.RowDefinitions.Clear();
                         gridReceived.RowDefinitions.Add(new RowDefinition());
                         Grid.SetRow(sendMessage, 0);
@@ -388,7 +416,10 @@ namespace Cluster_Client.ViewModel
                 {
                     gridReceived.RowDefinitions.Add(rowDefinition);
                 }
-                gridReceived.Children.Add(_defaultContentReceived);
+                foreach (var element in _defaultContentReceived)
+                {
+                    gridReceived.Children.Add(element);
+                }
 
                 ShowVideoReceived(TemporalyPathVideoReceived);
             }
