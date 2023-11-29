@@ -411,6 +411,7 @@ namespace Cluster_Client.ViewModel
             if (IsVideoReceived)
             {
                 Grid gridReceived = (Grid)Application.Current.MainWindow.FindName("receiveVideoContainer");
+				gridReceived.Children.Clear();
                 gridReceived.RowDefinitions.Clear();
                 foreach (var rowDefinition in _defaultRowDefinitionsReceived)
                 {

@@ -172,7 +172,7 @@ namespace Cluster_Client.Core
                     //Wjen message from serveer is Processed Data
                     if (model!.Type == MessageType.ProcessedData)
                     {
-                        VideoProcessed = model!.Content! as Video;
+                        VideoProcessed = JsonConvert.DeserializeObject<Video>(model!.Content!.ToString());
                         VideoProcessedByte = VideoProcessed.Data;
                         VideoProcessedFormat = VideoProcessed.Format;
                         if (VideoProcessedByte != null)
